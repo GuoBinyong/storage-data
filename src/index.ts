@@ -1,12 +1,10 @@
 export interface DataStorage {
   /**
-   * Returns the current value associated with the given key, or null if the given key does not exist in the list associated with the object.
+   * 获取 与指定 key 相关联的值；
    */
   getItem(key: string): string | null
   /**
-   * Sets the value of the pair identified by key to value, creating a new key/value pair if none existed for key previously.
-   *
-   * Throws a "QuotaExceededError" DOMException exception if the new value couldn't be set. (Setting could fail if, e.g., the user has disabled storage for the site, or if the quota has been exceeded.)
+   * 设置 指定 key 与 指定的 value 相关
    */
   setItem(key: string, value: string): void
 }
@@ -56,9 +54,9 @@ export type ExpiresDate = Millisecond | Date | DateDescription | string
  * StorageData 中 带有有效期的 Item
  */
 export interface StorageDataExpiresItem<V> {
-  maxAge: ExpiresDate
-  startTime: ExpiresDate
-  expires: ExpiresDate
+  maxAge?: ExpiresDate|null
+  startTime?: ExpiresDate|null
+  expires?: ExpiresDate|null
   value: V
 }
 
@@ -167,9 +165,9 @@ export function parseStorageDataItem<V extends StorageDataItem<any>>(item: V): V
     }
   }
 
-  if ((maxAge && startTime) !== undefined) {
-    const maxAgeDate = parseExpiresDate(maxAge)
-    const startTimeDate = parseExpiresDate(startTime)
+  if ((maxAge && startTime) != undefined) {
+    const maxAgeDate = parseExpiresDate(maxAge as ExpiresDate)
+    const startTimeDate = parseExpiresDate(startTime as ExpiresDate)
 
     if (startTimeDate.getTime() + maxAgeDate.getTime() < currTime) {
       return {
@@ -189,7 +187,7 @@ export function parseStorageDataItem<V extends StorageDataItem<any>>(item: V): V
 /**
  * 
  */
-interface StorageDataOptions<D> {
+export interface StorageDataOptions<D> {
   noExpires?:boolean;    //可选；默认值：false； 是否禁用有效期功能
   delay?:Millisecond|null;    //可选；默认值：null； 延时保存的毫秒数；用于对保存进行节流的时间； null | undefined | 小于0的值：无效；0：异步立即保存； 大于0的值：延迟保存
   changeNum?:number|null;   //可选； 默认值：1； 表示累计变化多少次时才执行保存； null | undefined | 小于1的值：都作为 1 来对待；
@@ -212,14 +210,17 @@ type StorageDataOptionsOfNoExpires<D> = Omit<StorageDataOptions<D>,"noExpires"> 
 
 
 /**
- * 创建 会自动将自己保存到  Storage （如：localStorage、sessionStorage）的数据对象，并且可以给数据对象的属性值设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
+ * 创建 会自动将自己保存到  Storage （如：localStorage、sessionStorage，或自定的 Storage）的数据对象，并且可以给数据对象的属性值设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
  * @param dataKey : string  指定保存在 Storage 中的 key
- * @param storage : Storage 指定要保存到哪个 Storage 对象中
+ * @param storage : DataStorage  指定要保存到哪个 Storage 对象中
  * @param options : StorageDataOptions 配置选项
- * @param withSave : boolean 
- * @returns 返回一个 D 类型的数据对象，当你更新该对象的属性时，它会自动将该对象保存到 指定的 storage 中；如果没有将 noExpires 设置为 true，则也可以给该对象的属性设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
+ * @param withSave : boolean   是否返回带有 save 方法的 StorageDataObject 类型的对象，StorageDataObject 对象的 save 方法可用于手动触发保存操作；
+ * @returns 返回的一个会自动保存自己的数据对象
+ *    - 如果指定 noExpires 为 true ：返回 D 类型的数据对象，该对象不具备有效期功能；
+ *    - 如果指定 noExpires 为 false ：返回 StorageData<D> 类型的数据对象，该对象具备有效期功能；
+ *    - 如果指定 withSave 为 true ：会返回 StorageDataObject 类型的对象，该对象的 data 属性是 StorageData<D> 或 D 类型的值，当更改该值的属性时，它会自动保存自己；该对象的 save 方法用于立即保存该对象的 data
+ * 当你更新 StorageData<D> 或 D 类型的对象的属性时，它会自动将该对象保存到 指定的 storage 中；如果没有将 noExpires 设置为 true，则也可以给该对象的属性设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
  */
-
 export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptionsOfNoExpires<D>): D
 export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options?:StorageDataOptions<D>): StorageData<D>
 export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptionsOfNoExpires<D>, withSave:true): StorageDataObject<D>
