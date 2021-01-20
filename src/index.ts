@@ -183,7 +183,7 @@ export function parseStorageDataItem<V extends StorageDataItem<any>>(item: V): V
  */
 interface StorageDataOptions<D> {
   noExpires?:boolean;    //可选；默认值：false； 是否禁用有效期功能
-  delay?:Millisecond|null;    //可选；默认值：null； 延时保存的毫秒数；用于对保存进行节流的时间； null | undefined | 小于0的值：立即保存；0：异步立即保存；
+  delay?:Millisecond|null;    //可选；默认值：null； 延时保存的毫秒数；用于对保存进行节流的时间； null | undefined | 小于0的值：无效；0：异步立即保存； 大于0的值：延迟保存
   changeNum?:number|null;   //可选； 默认值：1； 表示累计变化多少次时才执行保存； null | undefined | 小于1的值：都作为 1 来对待；
   changed?:<Key extends keyof D>(key:Key,newValue:D[Key],oldValue:D[Key])=>void;   //当Item变更时会触发；
   saved?:(data:D)=>void;   //当要将数据保存到DataStorage中时触发
@@ -206,54 +206,58 @@ type StorageDataOptionsOfNoExpires<D> = Omit<StorageDataOptions<D>,"noExpires"> 
 /**
  * 创建 会自动将自己保存到  Storage （如：localStorage、sessionStorage）的数据对象，并且可以给数据对象的属性值设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
  * @param dataKey : string  指定保存在 Storage 中的 key
- * @param storage ?: Storage 指定要保存到哪个 Storage 对象中，默认是 localStorage
+ * @param storage : Storage 指定要保存到哪个 Storage 对象中
  * @param options ?: StorageDataOptions 配置选项
  * @returns 返回一个 D 类型的数据对象，当你更新该对象的属性时，它会自动将该对象保存到 指定的 storage 中；如果没有将 noExpires 设置为 true，则也可以给该对象的属性设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
  */
 
-export function createStorageData<D extends object>(dataKey: string, storage: DataStorage | null | undefined, options:StorageDataOptionsOfNoExpires<D>): D
-export function createStorageData<D extends object>(dataKey: string, storage?: DataStorage | null , options?:StorageDataOptions<D>): StorageData<D>
-export function createStorageData<D extends object,Opt extends StorageDataOptions<D> >(dataKey: string, storage?: DataStorage | null ,  options?:Opt) {
+export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptionsOfNoExpires<D>): D
+export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options?:StorageDataOptions<D>): StorageData<D>
+export function createStorageData<D extends object,Opt extends StorageDataOptions<D> >(dataKey: string, storage: DataStorage ,  options?:Opt) {
   // 变化计数
   let changeCount = 0;
   let timeoutID: NodeJS.Timeout | null = null;
 
-  const store = storage || localStorage;
   const {noExpires,delay,changeNum,changed,saved } = options || {};
 
-  // 变更数目保存；返回值表示是符合执行条件
+
+  // 变更数目保存
   const changeNumSaveData = function(data: any){
     // changeNum as number > changeCount  是取巧的设计，不需要检验 changeNum 为 null 或 undefined
     if (changeNum as number > changeCount){
       return false
     }
-    saveDataToStorage(data,dataKey,store,saved);
-    if (timeoutID){
-      clearTimeout(timeoutID);
-    }
+    saveDataToStorage(data,dataKey,storage,saved);
     return true
   }
 
-  // 延时保存； 返回值表示是符合执行条件
-  const delaySaveData = delay as number >= 0 ? function(data: any){
-    if (timeoutID){
-      clearTimeout(timeoutID);
-    }
-    timeoutID = setTimeout(function(){
-      saveDataToStorage(data,dataKey,store,saved);
-    },delay as number);
-    return false
-  } : function(data: any){
-    changeNumSaveData(data)
-    return true;
-  }
 
 
   /**
    * 保存 data 到 storage
    */
-  const saveData = function(data: any){
-    return delaySaveData(data) || changeNumSaveData(data);
+  let saveData = changeNumSaveData as (data: any)=>void;
+
+  if (delay as number >= 0){
+    // 延时保存； 返回值表示是符合执行条件
+    const delaySaveData = function(data: any){
+      if (timeoutID){
+        clearTimeout(timeoutID);
+      }
+      timeoutID = setTimeout(function(){
+        saveDataToStorage(data,dataKey,storage,saved);
+      },delay as number);
+    };
+
+    saveData = function(data: any){
+      if(changeNumSaveData(data)){
+        if (timeoutID){
+          clearTimeout(timeoutID);
+        }
+        return
+      }
+      delaySaveData(data);
+    }
   }
 
 
@@ -268,7 +272,7 @@ export function createStorageData<D extends object,Opt extends StorageDataOption
   type SD = StorageData<D>
 
 
-  const dataJSON = store.getItem(dataKey)
+  const dataJSON = storage.getItem(dataKey)
 
   let data!: SD;
   if (dataJSON) {
