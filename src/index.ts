@@ -21,9 +21,13 @@ export interface DataStorage {
  * @param key
  * @param storage
  */
-function saveDataToStorage(data: any, key: string, storage: Storage): void {
-  storage.setItem(key, JSON.stringify(data))
+function saveDataToStorage(data: any, key: string, storage: DataStorage,savedCB?:(data:any)=>void): void {
+  storage.setItem(key, JSON.stringify(data));
+  savedCB?.(data);
 }
+
+
+
 
 /**
  * 毫秒
@@ -71,8 +75,9 @@ export function isStorageDataExpiresItem(target: any): target is StorageDataExpi
 
 /**
  * 存储在StorageData 中的 Item
+ * 之所以要包含 undefined 是因为当获取 item 的值时，如果值过期了，则会返回 undefined
  */
-export type StorageDataItem<V> = V | StorageDataExpiresItem<V>
+export type StorageDataItem<V> = V | StorageDataExpiresItem<V> | undefined
 
 
 
@@ -172,20 +177,98 @@ export function parseStorageDataItem<V extends StorageDataItem<any>>(item: V): V
   }
 }
 
+
+/**
+ * 
+ */
+interface StorageDataOptions<D> {
+  noExpires?:boolean;    //可选；默认值：false； 是否禁用有效期功能
+  delay?:Millisecond|null;    //可选；默认值：null； 延时保存的毫秒数；用于对保存进行节流的时间； null | undefined | 小于0的值：立即保存；0：异步立即保存；
+  changeNum?:number|null;   //可选； 默认值：1； 表示累计变化多少次时才执行保存； null | undefined | 小于1的值：都作为 1 来对待；
+  changed?:<Key extends keyof D>(key:Key,newValue:D[Key],oldValue:D[Key])=>void;   //当Item变更时会触发；
+  saved?:(data:D)=>void;   //当要将数据保存到DataStorage中时触发
+}
+
+/**
+ * 禁用有效期的 StorageDataOptions
+ * noExpires为 true 的 StorageDataOptions
+ */
+type StorageDataOptionsOfNoExpires<D> = Omit<StorageDataOptions<D>,"noExpires"> & {noExpires:true}
+
+
+/**
+ * 使用有效期的 StorageDataOptions
+ * noExpires为 false 或 没设置 的 StorageDataOptions
+ */
+// type StorageDataOptionsOfHaveExpires<D> = Omit<StorageDataOptions<D>,"noExpires"> & {noExpires?:false}
+
+
 /**
  * 创建 会自动将自己保存到  Storage （如：localStorage、sessionStorage）的数据对象，并且可以给数据对象的属性值设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
  * @param dataKey : string  指定保存在 Storage 中的 key
  * @param storage ?: Storage 指定要保存到哪个 Storage 对象中，默认是 localStorage
- * @param noExpires ?: boolean 是否禁用有效期功能
+ * @param options ?: StorageDataOptions 配置选项
  * @returns 返回一个 D 类型的数据对象，当你更新该对象的属性时，它会自动将该对象保存到 指定的 storage 中；如果没有将 noExpires 设置为 true，则也可以给该对象的属性设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
  */
-export function createStorageData<D extends object>(dataKey: string, storage?: Storage): StorageData<D>
-export function createStorageData<D extends object>(dataKey: string, storage: Storage, noExpires: false | undefined | null): StorageData<D>
-export function createStorageData<D extends object>(dataKey: string, storage: Storage, noExpires: true): D
-export function createStorageData<D extends object, NoExpires>(dataKey: string, storage: Storage = localStorage, noExpires?: NoExpires): NoExpires extends true ? D : StorageData<D> {
-  type SD = NoExpires extends true ? D : StorageData<D>
 
-  const dataJSON = storage.getItem(dataKey)
+export function createStorageData<D extends object>(dataKey: string, storage: DataStorage | null | undefined, options:StorageDataOptionsOfNoExpires<D>): D
+export function createStorageData<D extends object>(dataKey: string, storage?: DataStorage | null , options?:StorageDataOptions<D>): StorageData<D>
+export function createStorageData<D extends object,Opt extends StorageDataOptions<D> >(dataKey: string, storage?: DataStorage | null ,  options?:Opt) {
+  // 变化计数
+  let changeCount = 0;
+  let timeoutID: NodeJS.Timeout | null = null;
+
+  const store = storage || localStorage;
+  const {noExpires,delay,changeNum,changed,saved } = options || {};
+
+  // 变更数目保存；返回值表示是符合执行条件
+  const changeNumSaveData = function(data: any){
+    // changeNum as number > changeCount  是取巧的设计，不需要检验 changeNum 为 null 或 undefined
+    if (changeNum as number > changeCount){
+      return false
+    }
+    saveDataToStorage(data,dataKey,store,saved);
+    if (timeoutID){
+      clearTimeout(timeoutID);
+    }
+    return true
+  }
+
+  // 延时保存； 返回值表示是符合执行条件
+  const delaySaveData = delay as number >= 0 ? function(data: any){
+    if (timeoutID){
+      clearTimeout(timeoutID);
+    }
+    timeoutID = setTimeout(function(){
+      saveDataToStorage(data,dataKey,store,saved);
+    },delay as number);
+    return false
+  } : function(data: any){
+    changeNumSaveData(data)
+    return true;
+  }
+
+
+  /**
+   * 保存 data 到 storage
+   */
+  const saveData = function(data: any){
+    return delaySaveData(data) || changeNumSaveData(data);
+  }
+
+
+
+  // 负责数据改变后的保存 和 回调逻辑
+  const dataChange = function(data:any,key:any,newValue:any,oldValue:any){
+    changeCount++;
+    changed?.(key as keyof D,newValue,oldValue);
+    saveData(data);
+  }
+
+  type SD = StorageData<D>
+
+
+  const dataJSON = store.getItem(dataKey)
 
   let data!: SD;
   if (dataJSON) {
@@ -197,18 +280,21 @@ export function createStorageData<D extends object, NoExpires>(dataKey: string, 
   }
 
   if (noExpires) {
-    return new Proxy(data, {
+    type SD = D
+    return new Proxy(data as SD, {
       set: function(target: SD, p: keyof SD, value: SD[keyof SD]) {
+        const oldValue = target[p];
         target[p] = value
-        saveDataToStorage(target, dataKey, storage)
+        dataChange(target,p,value,oldValue);
         return true
       },
       deleteProperty: function(target: SD, p: keyof SD) {
+        const oldValue = target[p];
         const result = delete target[p]
-        saveDataToStorage(target, dataKey, storage)
+        dataChange(target,p,undefined,oldValue);
         return result
       }
-    })
+    });
   }
 
   return new Proxy(data, {
@@ -222,13 +308,15 @@ export function createStorageData<D extends object, NoExpires>(dataKey: string, 
       return result.value
     },
     set: function(target: SD, p: keyof SD, value: SD[keyof SD]) {
+      const oldValue = target[p];
       target[p] = initStorageDataItem(value)
-      saveDataToStorage(target, dataKey, storage)
+      dataChange(target,p,value,oldValue);
       return true
     },
     deleteProperty: function(target: SD, p: keyof SD) {
+      const oldValue = target[p];
       const result = delete target[p]
-      saveDataToStorage(target, dataKey, storage)
+      dataChange(target,p,undefined,oldValue);
       return result
     }
   })
