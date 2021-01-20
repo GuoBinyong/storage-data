@@ -25,8 +25,14 @@ function saveDataToStorage(data: any, key: string, storage: Storage): void {
   storage.setItem(key, JSON.stringify(data))
 }
 
-export type Millisecond = number
+/**
+ * 毫秒
+ */
+export type Millisecond = number;
 
+/**
+ * 时间描述
+ */
 export interface DateDescription {
   year?: number
   month?: number
@@ -37,8 +43,14 @@ export interface DateDescription {
   millisecond?: number
 }
 
+/**
+ * 有效期
+ */
 export type ExpiresDate = Millisecond | Date | DateDescription | string
 
+/**
+ * StorageData 中 带有有效期的 Item
+ */
 export interface StorageDataExpiresItem<V> {
   maxAge: ExpiresDate
   startTime: ExpiresDate
@@ -46,6 +58,9 @@ export interface StorageDataExpiresItem<V> {
   value: V
 }
 
+/**
+ * StorageDataExpiresItem 的类型守卫
+ */
 export function isStorageDataExpiresItem(target: any): target is StorageDataExpiresItem<any> {
   return (
     target &&
@@ -54,17 +69,27 @@ export function isStorageDataExpiresItem(target: any): target is StorageDataExpi
   )
 }
 
+/**
+ * 存储在StorageData 中的 Item
+ */
 export type StorageDataItem<V> = V | StorageDataExpiresItem<V>
+
+
 
 export type StorageData<D> = {
   [P in keyof D]: StorageDataItem<D[P]>
 }
 
+
 /**
- * 将 StorageDataItem
+ * 将 StorageDataItem 类型 转为其值类型
  */
 export type GetValueFromStorageDataItem<SDItem> = SDItem extends StorageDataExpiresItem<any> ? SDItem['value'] : SDItem
 
+/**
+ * 对 StorageDataExpiresItem 类型的值 进行初始化，对于其它类型的值不做任何操作
+ * @param value 
+ */
 function initStorageDataItem<V>(value: V): V {
   if (isStorageDataExpiresItem(value)) {
     if (value.maxAge != null && value.startTime == undefined) {
@@ -75,7 +100,11 @@ function initStorageDataItem<V>(value: V): V {
   return value
 }
 
-function parseExpiresDate(expiresDate: ExpiresDate) {
+/**
+ * 将 ExpiresDate 类型的值解析 为 Date 类型的值
+ * @param expiresDate 
+ */
+export function parseExpiresDate(expiresDate: ExpiresDate) {
   const typeStr = typeof expiresDate
 
   if (typeStr === 'number' || typeStr === 'string') {
@@ -86,19 +115,24 @@ function parseExpiresDate(expiresDate: ExpiresDate) {
     return expiresDate
   }
 
-  let { year = 0, month = 1, day, hour, minute, second, millisecond } = expiresDate as DateDescription
-  month = month - 1
-  return new Date(year, month, day, hour, minute, second, millisecond)
+  const { year = 0, month = 1, day, hour, minute, second, millisecond } = expiresDate as DateDescription
+  return new Date(year, month - 1, day, hour, minute, second, millisecond)
 }
 
-export type ParseStorageDataItemResult<V> = {
+
+/**
+ * 有效性描述
+ */
+export type ValidityDescription<V> = {
   isValid: boolean
   value: V
 }
 
-export function parseStorageDataItem<V extends StorageDataItem<any>>(
-  item: V
-): ParseStorageDataItemResult<GetValueFromStorageDataItem<V>> {
+/**
+ * 解析 StorageDataItem 类型的值的有效性
+ * @param item 
+ */
+export function parseStorageDataItem<V extends StorageDataItem<any>>(item: V): ValidityDescription<GetValueFromStorageDataItem<V>> {
   if (!isStorageDataExpiresItem(item)) {
     return {
       isValid: true,
@@ -106,12 +140,12 @@ export function parseStorageDataItem<V extends StorageDataItem<any>>(
     }
   }
 
-  let { expires, maxAge, startTime, value } = item
+  const { expires, maxAge, startTime, value } = item
 
   const currTime = Date.now()
 
   if (expires != undefined) {
-    let expiresDate = parseExpiresDate(expires)
+    const expiresDate = parseExpiresDate(expires)
     if (expiresDate.getTime() < currTime) {
       return {
         isValid: false,
@@ -121,8 +155,8 @@ export function parseStorageDataItem<V extends StorageDataItem<any>>(
   }
 
   if ((maxAge && startTime) !== undefined) {
-    let maxAgeDate = parseExpiresDate(maxAge)
-    let startTimeDate = parseExpiresDate(startTime)
+    const maxAgeDate = parseExpiresDate(maxAge)
+    const startTimeDate = parseExpiresDate(startTime)
 
     if (startTimeDate.getTime() + maxAgeDate.getTime() < currTime) {
       return {
@@ -146,22 +180,14 @@ export function parseStorageDataItem<V extends StorageDataItem<any>>(
  * @returns 返回一个 D 类型的数据对象，当你更新该对象的属性时，它会自动将该对象保存到 指定的 storage 中；如果没有将 noExpires 设置为 true，则也可以给该对象的属性设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
  */
 export function createStorageData<D extends object>(dataKey: string, storage?: Storage): StorageData<D>
-export function createStorageData<D extends object>(
-  dataKey: string,
-  storage: Storage,
-  noExpires: false | undefined | null
-): StorageData<D>
+export function createStorageData<D extends object>(dataKey: string, storage: Storage, noExpires: false | undefined | null): StorageData<D>
 export function createStorageData<D extends object>(dataKey: string, storage: Storage, noExpires: true): D
-export function createStorageData<D extends object, NoExpires>(
-  dataKey: string,
-  storage: Storage = localStorage,
-  noExpires?: NoExpires
-): NoExpires extends true ? D : StorageData<D> {
+export function createStorageData<D extends object, NoExpires>(dataKey: string, storage: Storage = localStorage, noExpires?: NoExpires): NoExpires extends true ? D : StorageData<D> {
   type SD = NoExpires extends true ? D : StorageData<D>
 
-  let dataJSON = storage.getItem(dataKey)
+  const dataJSON = storage.getItem(dataKey)
 
-  let data: SD = {} as SD
+  let data!: SD;
   if (dataJSON) {
     try {
       data = JSON.parse(dataJSON)
@@ -172,13 +198,13 @@ export function createStorageData<D extends object, NoExpires>(
 
   if (noExpires) {
     return new Proxy(data, {
-      set: function(target: SD, p: keyof SD, value: SD[keyof SD], receiver: any) {
+      set: function(target: SD, p: keyof SD, value: SD[keyof SD]) {
         target[p] = value
         saveDataToStorage(target, dataKey, storage)
         return true
       },
       deleteProperty: function(target: SD, p: keyof SD) {
-        let result = delete target[p]
+        const result = delete target[p]
         saveDataToStorage(target, dataKey, storage)
         return result
       }
@@ -195,13 +221,13 @@ export function createStorageData<D extends object, NoExpires>(
       }
       return result.value
     },
-    set: function(target: SD, p: keyof SD, value: SD[keyof SD], receiver: any) {
+    set: function(target: SD, p: keyof SD, value: SD[keyof SD]) {
       target[p] = initStorageDataItem(value)
       saveDataToStorage(target, dataKey, storage)
       return true
     },
     deleteProperty: function(target: SD, p: keyof SD) {
-      let result = delete target[p]
+      const result = delete target[p]
       saveDataToStorage(target, dataKey, storage)
       return result
     }
