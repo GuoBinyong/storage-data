@@ -85,6 +85,14 @@ export type StorageData<D> = {
   [P in keyof D]: StorageDataItem<D[P]>
 }
 
+/**
+ * 带有 StorageData 相关成员的 对象
+ */
+export interface StorageDataObject<SD> {
+  data:SD
+  save():void;
+}
+
 
 /**
  * 将 StorageDataItem 类型 转为其值类型
@@ -207,29 +215,37 @@ type StorageDataOptionsOfNoExpires<D> = Omit<StorageDataOptions<D>,"noExpires"> 
  * 创建 会自动将自己保存到  Storage （如：localStorage、sessionStorage）的数据对象，并且可以给数据对象的属性值设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
  * @param dataKey : string  指定保存在 Storage 中的 key
  * @param storage : Storage 指定要保存到哪个 Storage 对象中
- * @param options ?: StorageDataOptions 配置选项
+ * @param options : StorageDataOptions 配置选项
+ * @param withSave : boolean 
  * @returns 返回一个 D 类型的数据对象，当你更新该对象的属性时，它会自动将该对象保存到 指定的 storage 中；如果没有将 noExpires 设置为 true，则也可以给该对象的属性设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
  */
 
 export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptionsOfNoExpires<D>): D
 export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options?:StorageDataOptions<D>): StorageData<D>
-export function createStorageData<D extends object,Opt extends StorageDataOptions<D> >(dataKey: string, storage: DataStorage ,  options?:Opt) {
+export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptionsOfNoExpires<D>, withSave:true): StorageDataObject<D>
+export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptionsOfNoExpires<D>, withSave?:false): D
+export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptions<D>|undefined|null, withSave:true): StorageDataObject<StorageData<D>>
+export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptions<D>|undefined|null, withSave?:false): StorageData<D>
+export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options?:StorageDataOptions<D>|null,withSave?:boolean): StorageData<D>|StorageDataObject<StorageData<D>>
+export function createStorageData<D extends object,Opt extends StorageDataOptions<D> >(dataKey: string, storage: DataStorage ,  options?:Opt|null,withSave?:boolean) {
   // 变化计数
   let changeCount = 0;
   let timeoutID: NodeJS.Timeout | null = null;
-
   const {noExpires,delay,changeNum,changed,saved } = options || {};
 
-
   // 变更数目保存
-  const changeNumSaveData = function(data: any){
+  // changeNum as number > 1  是取巧的设计，不需要检验 changeNum 为 null 或 undefined
+  const changeNumSaveData = changeNum as number > 1 ? function(data: any){
     // changeNum as number > changeCount  是取巧的设计，不需要检验 changeNum 为 null 或 undefined
     if (changeNum as number > changeCount){
       return false
     }
     saveDataToStorage(data,dataKey,storage,saved);
     return true
-  }
+  } : function(data: any){
+    saveDataToStorage(data,dataKey,storage,saved);
+    return true
+  };
 
 
 
@@ -238,6 +254,7 @@ export function createStorageData<D extends object,Opt extends StorageDataOption
    */
   let saveData = changeNumSaveData as (data: any)=>void;
 
+  // delay as number >= 0  是取巧的设计，不需要检验 delay 为 null 或 undefined
   if (delay as number >= 0){
     // 延时保存； 返回值表示是符合执行条件
     const delaySaveData = function(data: any){
@@ -283,9 +300,10 @@ export function createStorageData<D extends object,Opt extends StorageDataOption
     }
   }
 
+  let storageData!:SD;
   if (noExpires) {
     type SD = D
-    return new Proxy(data as SD, {
+    storageData = new Proxy(data as SD, {
       set: function(target: SD, p: keyof SD, value: SD[keyof SD]) {
         const oldValue = target[p];
         target[p] = value
@@ -299,31 +317,35 @@ export function createStorageData<D extends object,Opt extends StorageDataOption
         return result
       }
     });
+  }else {
+    storageData = new Proxy(data, {
+      get: function(target: SD, property: keyof SD) {
+        const value = target[property]
+        const result = parseStorageDataItem(value)
+        if (!result.isValid) {
+          delete target[property]
+          return undefined
+        }
+        return result.value
+      },
+      set: function(target: SD, p: keyof SD, value: SD[keyof SD]) {
+        const oldValue = target[p];
+        target[p] = initStorageDataItem(value)
+        dataChange(target,p,value,oldValue);
+        return true
+      },
+      deleteProperty: function(target: SD, p: keyof SD) {
+        const oldValue = target[p];
+        const result = delete target[p]
+        dataChange(target,p,undefined,oldValue);
+        return result
+      }
+    });
   }
 
-  return new Proxy(data, {
-    get: function(target: SD, property: keyof SD) {
-      const value = target[property]
-      const result = parseStorageDataItem(value)
-      if (!result.isValid) {
-        delete target[property]
-        return undefined
-      }
-      return result.value
-    },
-    set: function(target: SD, p: keyof SD, value: SD[keyof SD]) {
-      const oldValue = target[p];
-      target[p] = initStorageDataItem(value)
-      dataChange(target,p,value,oldValue);
-      return true
-    },
-    deleteProperty: function(target: SD, p: keyof SD) {
-      const oldValue = target[p];
-      const result = delete target[p]
-      dataChange(target,p,undefined,oldValue);
-      return result
-    }
-  })
+  return withSave ? {data:storageData,save:function(){
+    saveDataToStorage(data,dataKey,storage,saved);
+  }} : storageData;
 }
 
 export default createStorageData
