@@ -56,6 +56,7 @@ export interface DateDescription {
 
 /**
  * 有效期
+ * 如果是 string 类型的值，则必须是能被 Date 所识别的时间字符串格式
  */
 export type ExpiresDate = Millisecond | Date | DateDescription | string
 
@@ -195,7 +196,8 @@ export function parseStorageDataItem<V extends StorageDataItem<any>>(item: V): V
 
 
 /**
- * 
+ * StorageDataOptions
+ * - 如果 同时指定了 changeNum 和 delay ，则只要这两个条件任意之一满足，就会执行保存操作
  */
 export interface StorageDataOptions<D> {
   noExpires?:boolean;    //可选；默认值：false； 是否禁用有效期功能
