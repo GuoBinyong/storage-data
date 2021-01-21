@@ -307,6 +307,9 @@ export function createStorageData<D extends object,Opt extends StorageDataOption
   if (dataJSON) {
     try {
       data = JSON.parse(dataJSON)
+      if(!(data && typeof data === "object")){
+        data = {} as SD
+      }
     } catch (e) {
       data = {} as SD
     }
