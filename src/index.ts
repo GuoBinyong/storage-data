@@ -98,8 +98,8 @@ export type StorageData<D> = {
  * 带有 StorageData 相关成员的 对象
  */
 export interface StorageDataObject<SD> {
-  data:SD
-  save():void;
+  data:SD;  // StorageData 类型的对象，更改它的直接属性会自动保存；
+  save():boolean;  //手动触发 data（StorageData对象）保存的方法
 }
 
 
