@@ -18,10 +18,18 @@ export interface DataStorage {
  * @param data
  * @param key
  * @param storage
+ * @param manual 是否是手动触发
+ * @param willSaveCB
+ * @param savedCB
+ * @returns 返回值表示是否保存成功
  */
-function saveDataToStorage(data: any, key: string, storage: DataStorage,savedCB?:(data:any)=>void): void {
+function saveDataToStorage(data: any, key: string, storage: DataStorage,manual:boolean,willSaveCB:(data:any,manual:boolean)=>any,savedCB?:(data:any)=>void): boolean {
+  if(willSaveCB(data,manual)){
+    return false;
+  }
   storage.setItem(key, JSON.stringify(data));
   savedCB?.(data);
+  return true;
 }
 
 
@@ -191,8 +199,10 @@ export interface StorageDataOptions<D> {
   noExpires?:boolean;    //可选；默认值：false； 是否禁用有效期功能
   delay?:Millisecond|null;    //可选；默认值：null； 延时保存的毫秒数；用于对保存进行节流的时间； null | undefined | 小于0的值：无效；0：异步立即保存； 大于0的值：延迟保存
   changeNum?:number|null;   //可选； 默认值：1； 表示累计变化多少次时才执行保存； null | undefined | 小于1的值：都作为 1 来对待；
-  changed?:<Key extends keyof D>(key:Key,newValue:D[Key],oldValue:D[Key])=>void;   //当Item变更时会触发；
-  saved?:(data:D)=>void;   //当要将数据保存到DataStorage中时触发
+  willChange?:<Key extends keyof D>(key:Key,newValue:D[Key],oldValue:D[Key],data:D)=>any; //在Item变更前触发；返回真值，表示停止变更，会取消本次更改，返回假值，表示继续变更；
+  changed?:<Key extends keyof D>(key:Key,newValue:D[Key],oldValue:D[Key],data:D)=>void;   //在Item变更后触发；
+  willSave?:(data:D,manual:boolean)=>any;   //在将数据保存到DataStorage前时触发；manual 表示本次保存操作是否是手动触发的，即：不是自动触发的；返回真值，表示停止保存，会取消本次保存操作，返回假值，表示继续保存；
+  saved?:(data:D)=>void;   //在将数据保存到DataStorage后触发
 }
 
 /**
@@ -232,19 +242,20 @@ export function createStorageData<D extends object,Opt extends StorageDataOption
   // 变化计数
   let changeCount = 0;
   let timeoutID: NodeJS.Timeout | null = null;
-  const {noExpires,delay,changeNum,changed,saved } = options || {};
-
-  // 变更数目保存
+  const {noExpires,delay,changeNum,willChange,changed,willSave,saved } = options || {};
+  const willChangeCB = willChange as (key:any,newValue:any,oldValue:any,data:any)=>any || function(){};
+  const willSaveCB = willSave as (data:any,manual:boolean)=>any || function(){};
+  // 变更数目保存，返回值表示保存条件是否成立
   // changeNum as number > 1  是取巧的设计，不需要检验 changeNum 为 null 或 undefined
   const changeNumSaveData = changeNum as number > 1 ? function(data: any){
     // changeNum as number > changeCount  是取巧的设计，不需要检验 changeNum 为 null 或 undefined
     if (changeNum as number > changeCount){
       return false
     }
-    saveDataToStorage(data,dataKey,storage,saved);
+    saveDataToStorage(data,dataKey,storage,false,willSaveCB,saved);
     return true
   } : function(data: any){
-    saveDataToStorage(data,dataKey,storage,saved);
+    saveDataToStorage(data,dataKey,storage,false,willSaveCB,saved);
     return true
   };
 
@@ -263,7 +274,7 @@ export function createStorageData<D extends object,Opt extends StorageDataOption
         clearTimeout(timeoutID);
       }
       timeoutID = setTimeout(function(){
-        saveDataToStorage(data,dataKey,storage,saved);
+        saveDataToStorage(data,dataKey,storage,false,willSaveCB,saved);
       },delay as number);
     };
 
@@ -281,9 +292,9 @@ export function createStorageData<D extends object,Opt extends StorageDataOption
 
 
   // 负责数据改变后的保存 和 回调逻辑
-  const dataChange = function(data:any,key:any,newValue:any,oldValue:any){
+  const dataChange = function(key:any,newValue:any,oldValue:any,data:any){
     changeCount++;
-    changed?.(key as keyof D,newValue,oldValue);
+    changed?.(key as keyof D,newValue,oldValue,data);
     saveData(data);
   }
 
@@ -307,14 +318,20 @@ export function createStorageData<D extends object,Opt extends StorageDataOption
     storageData = new Proxy(data as SD, {
       set: function(target: SD, p: keyof SD, value: SD[keyof SD]) {
         const oldValue = target[p];
+        if (willChangeCB(p,value,oldValue,target)){
+          return false;
+        }
         target[p] = value
-        dataChange(target,p,value,oldValue);
+        dataChange(p,value,oldValue,target);
         return true
       },
       deleteProperty: function(target: SD, p: keyof SD) {
         const oldValue = target[p];
+        if (willChangeCB(p,undefined,oldValue,target)){
+          return false;
+        }
         const result = delete target[p]
-        dataChange(target,p,undefined,oldValue);
+        dataChange(p,undefined,oldValue,target);
         return result
       }
     });
@@ -331,21 +348,27 @@ export function createStorageData<D extends object,Opt extends StorageDataOption
       },
       set: function(target: SD, p: keyof SD, value: SD[keyof SD]) {
         const oldValue = target[p];
+        if (willChangeCB(p,value,oldValue,target)){
+          return false;
+        }
         target[p] = initStorageDataItem(value)
-        dataChange(target,p,value,oldValue);
+        dataChange(p,value,oldValue,target);
         return true
       },
       deleteProperty: function(target: SD, p: keyof SD) {
         const oldValue = target[p];
+        if (willChangeCB(p,undefined,oldValue,target)){
+          return false;
+        }
         const result = delete target[p]
-        dataChange(target,p,undefined,oldValue);
+        dataChange(p,undefined,oldValue,target);
         return result
       }
     });
   }
 
   return withSave ? {data:storageData,save:function(){
-    saveDataToStorage(data,dataKey,storage,saved);
+    return saveDataToStorage(data,dataKey,storage,true,willSaveCB,saved);
   }} : storageData;
 }
 

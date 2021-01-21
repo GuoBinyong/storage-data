@@ -29,7 +29,7 @@ module.exports = {
         // 警告 case 穿透
         "no-fallthrough":'warn',
         // 无用变量
-        // "no-unused-vars": "off",
+        "no-unused-vars": "off",
         // typescript 的 无用变量
         "@typescript-eslint/no-unused-vars": "error",
     }
