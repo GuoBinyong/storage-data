@@ -231,14 +231,14 @@ type StorageDataOptionsOfNoExpires<D> = Omit<StorageDataOptions<D>,"noExpires"> 
  *    - 如果指定 withSave 为 true ：会返回 StorageDataObject 类型的对象，该对象的 data 属性是 StorageData<D> 或 D 类型的值，当更改该值的属性时，它会自动保存自己；该对象的 save 方法用于立即保存该对象的 data
  * 当你更新 StorageData<D> 或 D 类型的对象的属性时，它会自动将该对象保存到 指定的 storage 中；如果没有将 noExpires 设置为 true，则也可以给该对象的属性设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
  */
-export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptionsOfNoExpires<D>): D
-export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options?:StorageDataOptions<D>): StorageData<D>
-export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptionsOfNoExpires<D>, withSave:true): StorageDataObject<D>
-export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptionsOfNoExpires<D>, withSave?:false): D
-export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptions<D>|undefined|null, withSave:true): StorageDataObject<StorageData<D>>
-export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options:StorageDataOptions<D>|undefined|null, withSave?:false): StorageData<D>
-export function createStorageData<D extends object>(dataKey: string, storage: DataStorage , options?:StorageDataOptions<D>|null,withSave?:boolean): StorageData<D>|StorageDataObject<StorageData<D>>
-export function createStorageData<D extends object,Opt extends StorageDataOptions<D> >(dataKey: string, storage: DataStorage ,  options?:Opt|null,withSave?:boolean) {
+export function createStorageData<D = any>(dataKey: string, storage: DataStorage , options:StorageDataOptionsOfNoExpires<D>): D
+export function createStorageData<D = any>(dataKey: string, storage: DataStorage , options?:StorageDataOptions<D>): StorageData<D>
+export function createStorageData<D = any>(dataKey: string, storage: DataStorage , options:StorageDataOptionsOfNoExpires<D>, withSave:true): StorageDataObject<D>
+export function createStorageData<D = any>(dataKey: string, storage: DataStorage , options:StorageDataOptionsOfNoExpires<D>, withSave?:false): D
+export function createStorageData<D = any>(dataKey: string, storage: DataStorage , options:StorageDataOptions<D>|undefined|null, withSave:true): StorageDataObject<StorageData<D>>
+export function createStorageData<D = any>(dataKey: string, storage: DataStorage , options:StorageDataOptions<D>|undefined|null, withSave?:false): StorageData<D>
+export function createStorageData<D = any>(dataKey: string, storage: DataStorage , options?:StorageDataOptions<D>|null,withSave?:boolean): StorageData<D>|StorageDataObject<StorageData<D>>
+export function createStorageData<Opt extends StorageDataOptions<D> ,D = any>(dataKey: string, storage: DataStorage ,  options?:Opt|null,withSave?:boolean) {
   // 变化计数
   let changeCount = 0;
   let timeoutID: NodeJS.Timeout | null = null;
@@ -318,7 +318,6 @@ export function createStorageData<D extends object,Opt extends StorageDataOption
 
   let storageData!:SD;
   if (noExpires) {
-    type SD = D
     storageData = new Proxy(data as SD, {
       set: function(target: SD, p: keyof SD, value: SD[keyof SD]) {
         const oldValue = target[p];
