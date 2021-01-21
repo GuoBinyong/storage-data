@@ -42,15 +42,16 @@ export type Millisecond = number;
 
 /**
  * 时间描述
+ * 注意：月分 month 是从 1开始的；即 1表示 1月，2表示 2月，这与 Date 类型的 月分不一样；
  */
 export interface DateDescription {
-  year?: number
-  month?: number
-  day?: number
-  hour?: number
-  minute?: number
-  second?: number
-  millisecond?: number
+  year?: number;  //年
+  month?: number;  //月；**注意：从1开始，并不是从0开始** 
+  day?: number;  //日；
+  hour?: number;  //时
+  minute?: number; //分
+  second?: number;  //秒
+  millisecond?: number;  //毫秒
 }
 
 /**
@@ -60,12 +61,13 @@ export type ExpiresDate = Millisecond | Date | DateDescription | string
 
 /**
  * StorageData 中 带有有效期的 Item
+ * 如果 即指定了 maxAge，又指定了 expires，则只要 maxAge 和 expires 中有一个过期（失效），就算失效；
  */
 export interface StorageDataExpiresItem<V> {
-  maxAge?: ExpiresDate|null
-  startTime?: ExpiresDate|null
-  expires?: ExpiresDate|null
-  value: V
+  maxAge?: ExpiresDate|null;   //可选；默认无限长；有效时长，即多长时间后失效；
+  startTime?: ExpiresDate|null;  //可选；默认值：当前时间； 表示开始计时的时间；这个一般不需要指定；
+  expires?: ExpiresDate|null;  // 可靠；默认：无限远； 表示失效日期，即到什么时间点后失效；
+  value: V;  //必选；要保存的值；
 }
 
 /**
