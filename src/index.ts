@@ -224,9 +224,9 @@ type StorageDataOptionsOfNoExpires<D> = Omit<StorageDataOptions<D>,"noExpires"> 
 
 
 /**
- * 创建 会自动将自己保存到  Storage （如：localStorage、sessionStorage，或自定的 Storage）的数据对象，并且可以给数据对象的属性值设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
- * @param storage : DataStorage  指定要保存到哪个 Storage 对象中
- * @param dataKey : string  指定保存在 Storage 中的 key
+ * 创建 会自动将自己保存到  storage （如：localStorage、sessionStorage，或自定的 storage）的数据对象，并且可以给数据对象的属性值设置有效期，如果过了有效期，则该属性会返回 undefined，并且会自动删除该属性
+ * @param storage : DataStorage  指定要保存到哪个 storage 对象中
+ * @param dataKey : string  指定保存在 storage 中的 key
  * @param options : StorageDataOptions 配置选项
  * @param withSave : boolean   是否返回带有 save 方法的 StorageDataObject 类型的对象，StorageDataObject 对象的 save 方法可用于手动触发保存操作；
  * @returns 返回的一个会自动保存自己的数据对象
