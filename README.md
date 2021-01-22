@@ -41,7 +41,7 @@ StorageData 是一个用于自动存储数据，并且可以指定数据有效�
 ## 基本使用（自动保存）
 1. 创建 StorageData 对象
    ```
-   const sd = createStorageData("logInfo",localStorage);
+   const sd = createStorageData(localStorage,"logInfo");
    ```
 2. 往 StorageData 对象上添加或设置属性；你只管设置属性即可，它会自动将数据 保存到你指定的 storage（本例指定的是 localStorage） 中；
    ```
@@ -49,13 +49,13 @@ StorageData 是一个用于自动存储数据，并且可以指定数据有效�
    sd.email = "guobinyong@qq.com";
    ```
 
-StorageData 对象会在它的直接属性变动后自动保存到指定的 Storage（如：localStorage、sessionStorage 或者自定义的实现了 DataStorage 接口的 Storage）中，_注意：它只会监测 StorageData 对象 的直接属性的变更，不会监测 StorageData 对象 的属性的属性的变更；_
+StorageData 对象会在它的直接属性变动后自动保存到指定的 storage（如：localStorage、sessionStorage 或者自定义的实现了 DataStorage 接口的 Storage）中，_注意：它只会监测 StorageData 对象 的直接属性的变更，不会监测 StorageData 对象 的属性的属性的变更；_
 
 ### 类型约束
 `createStorageData()` 是个泛型函数，如果你在 TypeScript 中使用，你也可以给它传递一个泛型参数 `createStorageData<D>()`，用于描述 StorageData 对象的格式；
 比如：
 ```
-const sd = createStorageData<{name:string,email:string}>("logInfo",localStorage,{noExpires:true});
+const sd = createStorageData<{name:string,email:string}>(localStorage,"logInfo",{noExpires:true});
 ```
 当你给 `sd` 设置不符合类型描述的值时，语法提示就会报错，如：
 ```
@@ -69,10 +69,10 @@ sd.email = {
 
 ### 语法
 ```
-function createStorageData<D = any>(dataKey: string, storage: DataStorage , options?:StorageDataOptions<D>|null,withSave?:boolean): StorageData<D>|StorageDataObject<StorageData<D>>
+function createStorageData<D = any>(storage: DataStorage , dataKey: string, options?:StorageDataOptions<D>|null,withSave?:boolean): StorageData<D>|StorageDataObject<StorageData<D>>
 ```
-- @param dataKey : string  指定保存在 Storage 中的 key
-- @param storage : DataStorage  指定要保存到哪个 Storage 对象中
+- @param storage : DataStorage  指定要保存到哪个 storage 对象中
+- @param dataKey : string  指定保存在 storage 中的 key
 - @param options : StorageDataOptions 配置选项
 - @param withSave : boolean   是否返回带有 save 方法的 StorageDataObject 类型的对象，StorageDataObject 对象的 save 方法可用于手动触发保存操作；
 - @returns 返回的一个会自动保存自己的数据对象
@@ -164,7 +164,7 @@ sd.name = {
 ```
 你可以在创建 StorageData 对象时给 `createStorageData` 传一个带有 `noExpires`属性且值为 `true` 的对象，如下：
 ```
-const sd = createStorageData("logInfo",localStorage,{noExpires:true});
+const sd = createStorageData(localStorage,"logInfo",{noExpires:true});
 ```
 这样创建出来的 `sd` 对象就不带有效期的功能，对于下面的代码：
 ```
@@ -183,8 +183,8 @@ console.log(sd.name)
 ```
 
 ## 调整保存频率
-默认情况下，StorageData 对象会在每次改变其直接属性后立即触发保存操作，将数据保存到指定的 Storage 中，如果你经常需要频繁地操作数据，你可以通过给 `createStorageData`方法传递 `delay` 或 `changeNum` 选项 来实现对保存操作做节流，如
-：`createStorageData("logInfo",localStorage,{delay:1000,changeNum:5})`；
+默认情况下，StorageData 对象会在每次改变其直接属性后立即触发保存操作，将数据保存到指定的 storage 中，如果你经常需要频繁地操作数据，你可以通过给 `createStorageData`方法传递 `delay` 或 `changeNum` 选项 来实现对保存操作做节流，如
+：`createStorageData(localStorage,"logInfo",{delay:1000,changeNum:5})`；
 - `delay?:Millisecond|null`  可选；默认值：`null`； 延时保存的毫秒数；用于对保存进行节流的时间； `null | undefined | 小于0的值`：无效； `0`：异步立即保存； `大于0的值`：延迟保存
 - `changeNum?:number|null`   可选； 默认值：`1`； 表示累计变化多少次时才执行保存； `null | undefined | 小于1的值`：都作为 1 来对待；
 
@@ -194,7 +194,7 @@ console.log(sd.name)
 ### 手动保存
 当你对保存做了节流之后，你可能需要在适当的时机（比如：你页面被销毁时）手动保存，用以确保最近的更改的数据被保存下来；想要使用手动保存，你需要给 `createStorageData` 方法传递 `withSave` 参数（第4个参数）并且设置为 `true`，如下：
 ```
-const sd = createStorageData("logInfo",localStorage,{delay:1000,changeNum:5},true);
+const sd = createStorageData(localStorage,"logInfo",{delay:1000,changeNum:5},true);
 sd.data.name = "郭斌勇";  //更改属性值
 sd.save(); //手动保存
 ```
@@ -209,5 +209,44 @@ interface StorageDataObject<SD> {
 
 
 ## 监听变化和保存
+你可以给 `createStorageData` 方法的 `options` 参数（第三个参数）添加 `changed` 和 `saved` 选项来监听数据的变更 和 保存操作，如：
+```
+const sd = createStorageData(localStorage,"logInfo",{
+    changed:function(key,newVal,oldVal,data){
+        console.log("数据变更了");
+    }
+});
+```
+- `changed: (key,newValue,oldValue,data)=>void` ：数据更改的回调函数，会在数据变更后触发；
+- `saved:(data)=>void`：在将数据保存到 storage 后触发；
+
+
 ## 拦截变化和保存
+你可以给 `createStorageData` 方法的 `options` 参数（第三个参数）添加 `willChange` 和 `willSave` 选项来拦截 或 监听 数据的变更 和 保存操作，如：
+```
+const sd = createStorageData(localStorage,"logInfo",{
+    willChange:function(key,newValue,oldValue,data){
+        if (newValue === oldValue){
+            return true; //新值 和 旧值 一样，则取消本次变更
+        }
+    }
+});
+```
+- `willChange:(key,newValue,oldValue,data)=>any`：回调函数；在数据变更前触发；返回真值，表示停止变更，即会取消本次更改；返回假值，表示继续变更；
+- `willSave:(data,manual)=>any`：回调函数；在将数据保存到 storage 前时触发；`manual` 表示本次保存操作是否是手动触发的，即：不是自动触发的；返回真值，表示停止保存，即：会取消本次保存操作；返回假值，表示继续保存；
+
+
 ## 自定义Storage
+`createStorageData(storage: DataStorage , dataKey: string, options?:StorageDataOptions<D>|null,withSave?:boolean)` 的第一个参数 `storage` 是 `DataStorage` 接口类型的，`DataStorage` 接口的定义如下：
+```
+interface DataStorage {
+  //获取 与指定 key 相关联的值；
+  getItem(key: string): string | null
+
+  //设置 指定 key 与 指定的 value 相关
+  setItem(key: string, value: string): void
+}
+```
+也就是说，并不是只有浏览器提供的 Storage 对象（如：localStorage、sessionStorage）可以传给 `createStorageData`，任何一个拥有 `getItem(key: string): string | null` 和 `setItem(key: string, value: string)` 这两个方法的对象，都可以作为 storage 提供给 `createStorageData`；之所以这样设计，是因为：
+- 可扩展性更强：你可以通过实现 DataStorage 接口，然后将数据最终存储在任意地方；
+- 兼容 node 环境：这样可以将 storage 完全从 StorageData 中抽离，从而可以拿 StorageData 不包含任何 node 环境不兼容的代码；所以 StorageData 也可以运行在 node 环境中；
