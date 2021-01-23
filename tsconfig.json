@@ -15,8 +15,8 @@
     "resolveJsonModule":true,
     "esModuleInterop": true
   },
-  "exclude": [
-    "dist",
-    "dev"
+  "include": [
+    "src",
+    "types"
   ]
 }
