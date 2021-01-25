@@ -2,6 +2,7 @@
 [API接口文档]: ./doc/API.md
 
 [git仓库]: https://github.com/GuoBinyong/storage-data
+[发行地址]: https://github.com/GuoBinyong/storage-data/releases
 [issues]: https://github.com/GuoBinyong/storage-data/issues
 
 
@@ -89,11 +90,7 @@ npm install --save-prod storage-data
 ```
 
 ## 3.2. 方式2：直接下载原代码
-您可直接从 [git仓库][] 下载代码文件；
-
-仓库里包含了 源码 和 编译后的代码文件 ：
-- 源码放在 `src/` 目录中；
-- 构建后的包放 `dist/` 目录中； 
+您可直接从项目的 [发行地址][] 下载 源码 或 构建后包文件；
 
 您可以直接把 源码 或 构建后 的包拷贝到您的项目中去；然后使用如下代码在您的项目中引入 `StorageData`：
 ```
@@ -107,7 +104,7 @@ import createStorageData from "path/to/package/storage-data";
 
 
 ## 3.3. 方式3：通过`<script>`标签引入
-您可直接下载 [git仓库][] 中的 `dist/storage-data.iife.js` 文件，然后使用如下代码引用 和 使用 storage-data：
+您可直接从项目的 [发行地址][] 中下载以 `.iife.js` 作为缀的文件，然后使用如下代码引用 和 使用 storage-data：
 
 
 1. 引用 storage-data
