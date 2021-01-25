@@ -5,7 +5,27 @@
 [issues]: https://github.com/GuoBinyong/storage-data/issues
 
 
-# 背景
+目录
+=========
+
+<!-- TOC -->
+
+- [1. 背景](#1-背景)
+- [2. 简介](#2-简介)
+- [3. 安装方式](#3-安装方式)
+    - [3.1. 方式1：通过 npm 安装](#31-方式1通过-npm-安装)
+    - [3.2. 方式2：直接下载原代码](#32-方式2直接下载原代码)
+    - [3.3. 方式3：通过`<script>`标签引入](#33-方式3通过script标签引入)
+
+<!-- /TOC -->
+
+
+内容
+=====
+
+
+
+# 1. 背景
 项目中，经常有持久化（存储）数据的需要，在前端中，常用的方案就是 Storage（如：localStorage、sessionStorage） 和 cookie；然后它们各有优缺点，如：
 
 **Storage**（相对 cookie 而言）  
@@ -29,7 +49,7 @@
 
 
 
-# 简介
+# 2. 简介
 StorageData 是一个用于自动存储数据，并且可以指定数据有效期的工具；它更像是 cookie 和 Storage（如：localStorage、sessionStorage）的结合；
 
 **具有以下特性：**  
@@ -59,16 +79,16 @@ StorageData 是一个用于自动存储数据，并且可以指定数据有效�
 
 
 
-# 安装方式
+# 3. 安装方式
 目前，安装方式有以下几种：
 
 
-## 方式1：通过 npm 安装
+## 3.1. 方式1：通过 npm 安装
 ```
 npm install --save-prod storage-data
 ```
 
-## 方式2：直接下载原代码
+## 3.2. 方式2：直接下载原代码
 您可直接从 [git仓库][] 下载代码文件；
 
 仓库里包含了 源码 和 编译后的代码文件 ：
@@ -86,7 +106,7 @@ import createStorageData from "path/to/package/storage-data";
 
 
 
-## 方式3：通过`<script>`标签引入
+## 3.3. 方式3：通过`<script>`标签引入
 您可直接下载 [git仓库][] 中的 `dist/storage-data.iife.js` 文件，然后使用如下代码引用 和 使用 storage-data：
 
 
