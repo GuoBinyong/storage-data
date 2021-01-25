@@ -18,13 +18,17 @@
     "localStorage",
     "sessionStorage",
     "cookie",
+    "automatic storage",
+    "自动存储",
     "有效期"
   ],
   "author": "郭斌勇",
   "license": "ISC",
   "files": [
     "dist/[^.]*",
-    "types/[^.]*"
+    "types/[^.]*",
+    "docs/[^.]*",
+    "doc/[^.]*"
   ],
   "scripts": {
     "build": "rollup -c",
