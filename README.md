@@ -1,9 +1,12 @@
 [教程]: ./doc/教程.md
 [API接口文档]: ./doc/API.md
 
-[git仓库]: https://github.com/GuoBinyong/storage-data
+[GitHub仓库]: https://github.com/GuoBinyong/storage-data
 [发行地址]: https://github.com/GuoBinyong/storage-data/releases
 [issues]: https://github.com/GuoBinyong/storage-data/issues
+
+[码云仓库]: https://gitee.com/guobinyong/storage-data
+
 
 
 目录
@@ -66,6 +69,8 @@ StorageData 是一个用于自动存储数据，并且可以指定数据有效�
 
 **详情请看：**  
 - 主页：<https://github.com/GuoBinyong/storage-data>
+- [GitHub仓库][]
+- [码云仓库][]
 - [教程][]
 - [API接口文档][]
 
