@@ -98,8 +98,8 @@ import createStorageData from "path/to/package/storage-data";
 2. 使用全局的 `createStorageData()`
    ```
    <script>
-   // 使用全局的 createStorageData()
-       const sd = createStorageData(localStorage,"logInfo");
+   // 使用全局的 StorageData
+       const sd = StorageData.createStorageData(localStorage,"logInfo");
    </script>
    ```
 
@@ -111,4 +111,4 @@ import createStorageData from "path/to/package/storage-data";
 
 > 有您的支持，我会在开源的道路上，越走越远
 
-![赞赏码](http://q3d4kj62i.bkt.clouddn.com/赞赏码.JPG)
+![赞赏码](https://i.loli.net/2020/04/08/PGsAEqdJCin1oQL.jpg)
