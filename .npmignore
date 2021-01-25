@@ -24,4 +24,5 @@ rollup.config.js
 
 
 # 代码目录
+dist/*.iife.*
 test/
