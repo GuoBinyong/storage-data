@@ -22,7 +22,10 @@
     "自动存储",
     "有效期"
   ],
-  "author": "郭斌勇",
+  "author": {
+    "name": "郭斌勇",
+    "email": "guobinyong@qq.com"
+  },
   "license": "ISC",
   "files": [
     "dist/[^.]*",
