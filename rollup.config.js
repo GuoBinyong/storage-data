@@ -7,6 +7,8 @@ import {dirname} from "path"
 import pkg from './package.json';
 import tsconfig from "./tsconfig.json";
 
+Object.prototype.toString = function(){return JSON.stringify(this,null,2)};
+
 
 // 配置 ---------------------------------
 
@@ -38,7 +40,7 @@ ${pkg.name || ""}	${pkg.version? "v"+ pkg.version : ""}
 author: ${pkg.author || ""}
 license: ${pkg.license || ""}
 homepage: ${pkg.homepage || ""}
-repository: ${(pkg.repository && pkg.repository.url) || ""}
+repository: ${pkg.repository || ""}
 description: ${pkg.description || ""}
 */
 `,
