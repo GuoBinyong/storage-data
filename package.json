@@ -1,6 +1,6 @@
 {
   "name": "storage-data",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "storage-data 是一个用于自动存储数据，并且可以指定数据有效期的工具",
   "main": "dist/storage-data.cjs.js",
   "module": "dist/storage-data.es.js",
