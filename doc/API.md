@@ -1,23 +1,27 @@
+[介绍与安装]: ../README.md
+[教程]: ./教程.md
+
 目录
 ========
 
 
 <!-- TOC -->
 
-- [1. createStorageData()](#1-createstoragedata)
-- [2. DataStorage](#2-datastorage)
-- [3. StorageDataOptions](#3-storagedataoptions)
-- [4. StorageData](#4-storagedata)
-- [5. StorageDataItem](#5-storagedataitem)
-- [6. StorageDataExpiresItem](#6-storagedataexpiresitem)
-- [7. ExpiresDate有效期](#7-expiresdate有效期)
-- [8. Millisecond毫秒](#8-millisecond毫秒)
-- [9. DateDescription日期描述](#9-datedescription日期描述)
-- [10. StorageDataObject](#10-storagedataobject)
-- [11. parseStorageDataItem()](#11-parsestoragedataitem)
-- [12. ValidityDescription有效性描述](#12-validitydescription有效性描述)
-- [13. GetValueFromStorageDataItem](#13-getvaluefromstoragedataitem)
-- [14. parseExpiresDate()](#14-parseexpiresdate)
+- [1. 相关文章](#1-相关文章)
+- [2. createStorageData()](#2-createstoragedata)
+- [3. DataStorage](#3-datastorage)
+- [4. StorageDataOptions](#4-storagedataoptions)
+- [5. StorageData](#5-storagedata)
+- [6. StorageDataItem](#6-storagedataitem)
+- [7. StorageDataExpiresItem](#7-storagedataexpiresitem)
+- [8. ExpiresDate有效期](#8-expiresdate有效期)
+- [9. Millisecond毫秒](#9-millisecond毫秒)
+- [10. DateDescription日期描述](#10-datedescription日期描述)
+- [11. StorageDataObject](#11-storagedataobject)
+- [12. parseStorageDataItem()](#12-parsestoragedataitem)
+- [13. ValidityDescription有效性描述](#13-validitydescription有效性描述)
+- [14. GetValueFromStorageDataItem](#14-getvaluefromstoragedataitem)
+- [15. parseExpiresDate()](#15-parseexpiresdate)
 
 <!-- /TOC -->
 
@@ -25,7 +29,12 @@
 内容
 ===========
 
-# 1. createStorageData()
+
+# 1. 相关文章
+- [storage-data的介绍与安装][介绍与安装]
+- [教程][]
+
+# 2. createStorageData()
 `createStorageData()` 函数用来创建 会自动将自己保存到  storage （如：`localStorage`、`sessionStorage`，或自定的 `DataStorage` 类型的对象）的数据对象，并且可以给数据对象的属性值设置有效期，如果过了有效期，则该属性会返回 `undefined`，并且会自动删除该属性；
 
 ```
@@ -50,7 +59,7 @@ function createStorageData<D = any>(storage: DataStorage, dataKey: string, optio
 
 
 
-# 2. DataStorage
+# 3. DataStorage
 `DataStorage` 负责将最终序列化后的字符串持久化；
 它是一个接口，描述了持久实例应该具备的API，如下：
 
@@ -69,7 +78,7 @@ interface DataStorage {
 
 
 
-# 3. StorageDataOptions
+# 4. StorageDataOptions
 `StorageDataOptions` 是传 `createStorageData()` 函数的选项对象的类型；
 ```
 interface StorageDataOptions<D> {
@@ -94,7 +103,7 @@ interface StorageDataOptions<D> {
 如果 同时指定了 changeNum 和 delay ，则只要这两个条件任意之一满足，就会执行保存操作；
 
 
-# 4. StorageData
+# 5. StorageData
 `StorageData` 描述的是一种当属性值变更时会自动存储数据到 storage 中、并且可以指定属性值有效期的对象的类型；
 ```
 type StorageData<D> = {
@@ -103,7 +112,7 @@ type StorageData<D> = {
 ```
 
 
-# 5. StorageDataItem
+# 6. StorageDataItem
 `StorageDataItem` 描述的是存储在 `StorageData` 中的 数据项目；
 ```
 type StorageDataItem<V> = V | StorageDataExpiresItem<V> | undefined;
@@ -113,7 +122,7 @@ type StorageDataItem<V> = V | StorageDataExpiresItem<V> | undefined;
 
 
 
-# 6. StorageDataExpiresItem
+# 7. StorageDataExpiresItem
 `StorageDataExpiresItem` 描述的是 `StorageData` 中 带有有效期的数据项目；
 ```
 interface StorageDataExpiresItem<V> {
@@ -132,7 +141,7 @@ function isStorageDataExpiresItem(target: any): target is StorageDataExpiresItem
 ```
 
 
-# 7. ExpiresDate有效期
+# 8. ExpiresDate有效期
 ```
 type ExpiresDate = Millisecond | Date | DateDescription | string
 ```
@@ -141,13 +150,13 @@ type ExpiresDate = Millisecond | Date | DateDescription | string
 
 
 
-# 8. Millisecond毫秒
+# 9. Millisecond毫秒
 `Millisecond` 是表示毫秒的类型，实际是一个 `number` 类型
 ```
 type Millisecond = number;
 ```
 
-# 9. DateDescription日期描述
+# 10. DateDescription日期描述
 `DateDescription` 是用来 描述时间的；
 ```
 interface DateDescription {
@@ -164,7 +173,7 @@ interface DateDescription {
 注意：月分 `month` 是从 1开始的；即 1表示 1月，2表示 2月，这与 `Date` 类型的 月分不一样；
 
 
-# 10. StorageDataObject
+# 11. StorageDataObject
 `StorageDataObject` 描述的是一个API集合，包含带有 `StorageData` 成员 及其 相关操作的API;
 ```
 interface StorageDataObject<SD> {
@@ -176,7 +185,7 @@ interface StorageDataObject<SD> {
 
 
 
-# 11. parseStorageDataItem()
+# 12. parseStorageDataItem()
 解析 `StorageDataItem` 类型的值的有效性
 ```
 function parseStorageDataItem<V extends StorageDataItem<any>>(item: V): ValidityDescription<GetValueFromStorageDataItem<V>>
@@ -184,7 +193,7 @@ function parseStorageDataItem<V extends StorageDataItem<any>>(item: V): Validity
 
 
 
-# 12. ValidityDescription有效性描述
+# 13. ValidityDescription有效性描述
 `ValidityDescription` 是用来描述值的有效性类型
 ```
 type ValidityDescription<V> = {
@@ -195,13 +204,13 @@ type ValidityDescription<V> = {
 
 
 
-# 13. GetValueFromStorageDataItem
+# 14. GetValueFromStorageDataItem
 将 StorageDataItem 类型 转为其值类型
 ```
 type GetValueFromStorageDataItem<SDItem> = SDItem extends StorageDataExpiresItem<any> ? SDItem['value'] : SDItem
 ```
 
-# 14. parseExpiresDate()
+# 15. parseExpiresDate()
 将 ExpiresDate 类型的值解析 为 Date 类型的值
 ```
 function parseExpiresDate(expiresDate: ExpiresDate): Date
